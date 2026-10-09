@@ -1,0 +1,41 @@
+{
+  "name": "slot-analytics",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "db:setup": "node --env-file-if-exists=.env.local --import tsx scripts/setup.ts",
+    "data:update": "node --env-file-if-exists=.env.local --import tsx scripts/update.ts",
+    "format": "prettier --write src scripts tests docs *.ts *.json README.md",
+    "smoke": "tsx scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@holiday-jp/holiday_jp": "^2.5.0",
+    "csv-parse": "^6.1.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.468.0",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "recharts": "^3.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/leaflet": "^1.9.20",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "prettier": "3.9.9",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
