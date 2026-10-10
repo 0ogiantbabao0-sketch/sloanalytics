@@ -13,15 +13,31 @@ import {
 } from "lucide-react";
 import { useApp } from "./provider";
 const navigation = [
-  { href: "/", label: "ホールを探す", icon: LayoutDashboard },
-  { href: "/compare", label: "ホール比較", icon: GitCompareArrows },
-  { href: "/units", label: "台番分析", icon: Grid2X2 },
-  { href: "/saved", label: "お気に入り・保存", icon: Bookmark },
-  { href: "/admin", label: "データ管理", icon: Database },
+  {
+    href: "/",
+    label: "ホールを探す",
+    mobileLabel: "探す",
+    icon: LayoutDashboard,
+  },
+  {
+    href: "/compare",
+    label: "ホール比較",
+    mobileLabel: "比較",
+    icon: GitCompareArrows,
+  },
+  { href: "/units", label: "台番分析", mobileLabel: "台番", icon: Grid2X2 },
+  {
+    href: "/saved",
+    label: "お気に入り・保存",
+    mobileLabel: "保存",
+    icon: Bookmark,
+  },
+  { href: "/admin", label: "データ管理", mobileLabel: "管理", icon: Database },
 ];
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const { search, setSearch, store } = useApp();
+  const activeHref = /^\/(halls|machines)\//.test(path) ? "/" : path;
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -35,17 +51,56 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
         <div className="nav-caption">WORKSPACE</div>
-        <nav>
+        <nav aria-label="メインナビゲーション">
           {navigation.map((n) => (
             <Link
               key={n.href}
               href={n.href}
-              className={`nav-item ${path === n.href ? "active" : ""}`}
+              className={`nav-item ${activeHref === n.href ? "active" : ""}`}
+              aria-label={n.label}
+              aria-current={
+                activeHref === n.href
+                  ? path === n.href
+                    ? "page"
+                    : "location"
+                  : undefined
+              }
+              aria-description={
+                n.href === "/compare" && store.comparison.length > 0
+                  ? `比較候補${store.comparison.length}店舗`
+                  : undefined
+              }
+              onClick={(e) => {
+                if (
+                  path !== n.href ||
+                  e.metaKey ||
+                  e.ctrlKey ||
+                  e.shiftKey ||
+                  e.altKey ||
+                  e.button !== 0 ||
+                  !window.matchMedia("(max-width: 760px)").matches
+                )
+                  return;
+                e.preventDefault();
+                window.scrollTo({
+                  top: 0,
+                  behavior: window.matchMedia(
+                    "(prefers-reduced-motion: reduce)",
+                  ).matches
+                    ? "instant"
+                    : "smooth",
+                });
+              }}
             >
-              <n.icon size={19} />
-              <span>{n.label}</span>
+              <span className="nav-icon" aria-hidden="true">
+                <n.icon size={19} />
+              </span>
+              <span className="nav-label-desktop">{n.label}</span>
+              <span className="nav-label-mobile">{n.mobileLabel}</span>
               {n.href === "/compare" && store.comparison.length > 0 && (
-                <b className="nav-count">{store.comparison.length}</b>
+                <b className="nav-count" aria-hidden="true">
+                  {store.comparison.length}
+                </b>
               )}
             </Link>
           ))}
@@ -71,7 +126,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="main-wrap">
         <header className="topbar">
           <div className="breadcrumb">
-            ワークスペース <span>/</span>{" "}
+            <span className="breadcrumb-prefix">ワークスペース</span>
+            <span className="breadcrumb-separator">/</span>{" "}
             <strong>
               {navigation.find((n) => n.href === path)?.label || "詳細分析"}
             </strong>

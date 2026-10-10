@@ -6,3 +6,4 @@ data/*.sqlite*
 test-results/
 playwright-report/
 *.tsbuildinfo
+data/*.local.json

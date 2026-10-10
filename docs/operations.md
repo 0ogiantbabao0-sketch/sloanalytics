@@ -10,7 +10,7 @@ Node.js 24、npm lockfileに固定した依存関係、書込み可能な永続�
 
 - `DATA_DIR`：DB保存先。標準 `./data`。
 - `ADMIN_IMPORT_TOKEN`：管理画面のCSV登録用。十分長いランダム値を設定。未設定時は登録を拒否。
-- `PERMITTED_CSV_URL` / `PERMITTED_CSV_HOST`：正式な許可を確認したHTTPS CSV取得先。未設定時は取得しない。
+- `PERMITTED_SOURCES_FILE`：正式な許可を確認した複数HTTPS CSVの設定JSONへのパス。契約設定は [出典統合](source-integration.md) を参照。未設定時は取得しない。
 
 既存設定ファイルを上書きしないでください。DB・ログ・トークンをGitへ追加しないでください。
 
@@ -40,7 +40,7 @@ sqlite3 data/real.sqlite 'PRAGMA wal_checkpoint(TRUNCATE);'
 sqlite3 data/real.sqlite ".backup '/secure-backups/real.sqlite'"
 ```
 
-復旧は停止中にバックアップから復元し、所有権、`PRAGMA integrity_check`、ヘルスチェック、代表検索を確認します。スキーマを変更するときはバックアップして、明示的なバージョン付きマイグレーションを追加してください。現在のスキーマ初期化は `IF NOT EXISTS` であり既存テーブルを自動変更しません。
+復旧は停止中にバックアップから復元し、所有権、`PRAGMA integrity_check`、ヘルスチェック、代表検索を確認します。スキーマを変更するときはバックアップして、明示的なバージョン付きマイグレーションを追加してください。現在は基本スキーマの初期化に続き、明示的なバージョン2移行で出典・名寄せ・取得履歴テーブルを追加します。既存実績は保持します。
 
 ## Docker / 永続ディスク付きホスティング
 

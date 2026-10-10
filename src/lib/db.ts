@@ -1,4 +1,5 @@
 import { seedMachineCatalog } from "./machine-catalog";
+import { migrateSources } from "./migrations";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -6,10 +7,16 @@ export type DataMode = "demo" | "real";
 const connections = new Map<string, DatabaseSync>();
 export function createDb(path: string): DatabaseSync {
   const db = new DatabaseSync(path);
-  db.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
-  db.exec(readFileSync(resolve(process.cwd(), "src/lib/schema.sql"), "utf8"));
-  seedMachineCatalog(db);
-  return db;
+  try {
+    db.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
+    db.exec(readFileSync(resolve(process.cwd(), "src/lib/schema.sql"), "utf8"));
+    migrateSources(db);
+    seedMachineCatalog(db);
+    return db;
+  } catch (e) {
+    db.close();
+    throw e;
+  }
 }
 export function getDb(mode: DataMode): DatabaseSync {
   const dir = resolve(process.env.DATA_DIR || "./data");

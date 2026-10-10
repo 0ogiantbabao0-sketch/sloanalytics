@@ -1,0 +1,20 @@
+# Temporary demo preview. SQLite is recreated when the free instance is replaced.
+services:
+  - type: web
+    name: slot-analytics-preview
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: false
+    envVars:
+      - key: PORT
+        value: "3000"
+      - key: DATA_DIR
+        value: /app/data
+      - key: ADMIN_IMPORT_TOKEN
+        value: ""
+      - key: PERMITTED_SOURCES_FILE
+        value: ""

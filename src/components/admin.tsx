@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Upload, Download, Database, CheckCircle2 } from "lucide-react";
 import { useApp } from "./provider";
+import { SourceWorkspace } from "./source-workspace";
 export function Admin() {
   const { search, catalog, reload } = useApp();
   const [file, setFile] = useState<File | null>(null),
@@ -28,7 +29,7 @@ export function Admin() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setMessage(
-        `${data.rows}行を処理しました（更新${data.changed}行・変更なし${data.unchanged}行）`,
+        `${data.rows}行を処理しました（採用実績の更新${data.changed}行・別出典として保存${data.retained}行）`,
       );
       setToken("");
       reload();
@@ -59,7 +60,7 @@ export function Admin() {
             CSVインポート
           </h2>
           <p className="muted">
-            店舗・機種・日別実績をまとめて登録します。重複キーは更新し、訂正履歴を保存します。
+            店舗・機種・日別実績をまとめて登録します。出典別に保持し、採用中の出典の訂正だけをランキングに反映します。
           </p>
           <form onSubmit={submit} className="import-form">
             <label className="upload-zone">
@@ -121,7 +122,7 @@ export function Admin() {
         <section className="panel info-panel">
           <h2>CSVフォーマット</h2>
           <p>
-            日付・店舗ID・機種が同じ行は上書き更新。同じCSV内の重複は全体を差し戻します。
+            日付・店舗ID・機種が同じ別出典は個別に保存します。同じCSV内の重複は全体を差し戻します。
           </p>
           <p>
             プラス台数・平均ゲーム数は空欄可。それ以外は必須です。平均差枚は総差枚
@@ -138,7 +139,7 @@ export function Admin() {
           </a>
           <a
             className="secondary-button"
-            href="/samples/real-template.csv"
+            href="/samples/real-template-v2.csv"
             download
           >
             <Download size={16} />
@@ -153,6 +154,7 @@ export function Admin() {
           </div>
         </section>
       </div>
+      <SourceWorkspace />
       <section className="panel info-panel">
         <h2>更新・取込履歴</h2>
         <div className="table-scroll">
@@ -207,6 +209,7 @@ export function Admin() {
               {s.name} ↗
             </a>
             <p>{s.permission}</p>
+            <p>集計定義：{s.definition}</p>
             <small>
               {s.method} / {s.reliability} / 取得{" "}
               {new Date(s.retrieved_at).toLocaleString("ja-JP", {

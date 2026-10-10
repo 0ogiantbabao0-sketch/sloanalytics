@@ -19,4 +19,3 @@ CREATE TABLE IF NOT EXISTS import_jobs (id INTEGER PRIMARY KEY, started_at TEXT 
 CREATE TABLE IF NOT EXISTS data_revisions (id INTEGER PRIMARY KEY, job_id INTEGER REFERENCES import_jobs(id), entity TEXT NOT NULL, entity_key TEXT NOT NULL, before_json TEXT, after_json TEXT NOT NULL, changed_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS saved_searches (id TEXT PRIMARY KEY, owner_id TEXT, name TEXT NOT NULL, conditions_json TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS favorites (owner_id TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, PRIMARY KEY(owner_id,entity_type,entity_id));
-PRAGMA user_version = 1;
