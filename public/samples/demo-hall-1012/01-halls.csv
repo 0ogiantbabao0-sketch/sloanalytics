@@ -1,0 +1,2 @@
+﻿data_kind,hall_id,hall_name,address,lat,lng,official_url,hours,lottery_time,source_url
+demo,demo-hall-1012,デモホール1012,京都府長岡京市（架空・動作確認用）,34.9235,135.7001,https://example.com/demo-hall-1012,10:00〜22:45,09:30,https://example.com/demo-hall-1012

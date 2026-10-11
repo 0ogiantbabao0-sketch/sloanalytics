@@ -1,0 +1,3 @@
+﻿data_kind,hall_id,machine_name,units,survey_date,valid_from,valid_to,source_url
+demo,demo-hall-1012,マイジャグラーV,10,2026-09-12,2026-09-12,,https://example.com/demo-hall-1012
+demo,demo-hall-1012,Lパチスロ北斗の拳,8,2026-09-12,2026-09-12,,https://example.com/demo-hall-1012
