@@ -150,7 +150,7 @@ export function Dashboard() {
           ) : !data?.rankings.length ? (
             <div className="empty-state panel">
               <Layers3 size={30} />
-              <h3>該当する実績データがありません</h3>
+              <h3>評価不可：該当する実績データがありません</h3>
               <p>
                 検索範囲・条件を変更するか、CSVで実績を登録してください。
                 <br />
@@ -235,7 +235,7 @@ export function Dashboard() {
             <CircleHelp size={20} />
             <h3>スコアの見かた</h3>
             <p>
-              同機種の通常日との差、プラス台率、稼働、安定性、直近実績を組み合わせて評価。
+              同機種の通常日との差、安定性、直近傾向、ホール同条件実績、イベントの過去相関を組み合わせて評価。
             </p>
             <div className="score-scale">
               <span />

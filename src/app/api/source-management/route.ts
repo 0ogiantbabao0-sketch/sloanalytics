@@ -11,8 +11,8 @@ function modeOf(req: Request) {
     .enum(["demo", "real"])
     .parse(new URL(req.url).searchParams.get("mode"));
 }
-export function GET(req: Request) {
-  const denied = authorizeAdmin(req);
+export async function GET(req: Request) {
+  const denied = await authorizeAdmin(req);
   if (denied) return denied;
   try {
     const db = getDb(modeOf(req));
@@ -41,7 +41,7 @@ export function GET(req: Request) {
   }
 }
 export async function POST(req: Request) {
-  const denied = authorizeAdmin(req);
+  const denied = await authorizeAdmin(req);
   if (denied) return denied;
   try {
     const db = getDb(modeOf(req));

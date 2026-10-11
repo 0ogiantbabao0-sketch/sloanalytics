@@ -77,6 +77,7 @@ type AppContext = {
   toggleCompare: (id: string) => void;
   reload: () => void;
   loaded: boolean;
+  revision: number;
 };
 const Context = createContext<AppContext | null>(null);
 export function Provider({ children }: { children: ReactNode }) {
@@ -108,7 +109,14 @@ export function Provider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const c = new AbortController();
     fetch(`/api/catalog?mode=${search.mode}`, { signal: c.signal })
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) {
+          location.assign("/login");
+          throw new Error("ログインしてください");
+        }
+        if (!r.ok) throw new Error("カタログ取得失敗");
+        return r.json();
+      })
       .then(setCatalog)
       .catch(() => {});
     return () => c.abort();
@@ -141,6 +149,7 @@ export function Provider({ children }: { children: ReactNode }) {
         toggleCompare,
         reload: () => setRevision((n) => n + 1),
         loaded,
+        revision,
       }}
     >
       {children}
@@ -151,6 +160,7 @@ export function useApp() {
   return useContext(Context)!;
 }
 export function useAnalysis(input: Search) {
+  const { revision } = useApp();
   const [data, setData] = useState<SearchResponse | null>(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
@@ -179,6 +189,6 @@ export function useAnalysis(input: Search) {
         if (!c.signal.aborted) setLoading(false);
       });
     return () => c.abort();
-  }, [key]);
+  }, [key, revision]);
   return { data, error, loading };
 }

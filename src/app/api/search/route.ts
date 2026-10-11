@@ -11,7 +11,9 @@ export async function POST(req: Request) {
         { error: parsed.error.issues.map((e) => e.message).join(" / ") },
         { status: 400 },
       );
-    return NextResponse.json(search(getDb(parsed.data.mode), parsed.data));
+    return NextResponse.json(
+      search(getDb(parsed.data.mode), parsed.data, { audit: true }),
+    );
   } catch {
     return NextResponse.json(
       {

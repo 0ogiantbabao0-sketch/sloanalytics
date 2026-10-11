@@ -338,7 +338,7 @@ test("v1 migration preserves existing rows and repeated opens do not reset the v
       try {
         assert.equal(
           get<{ user_version: number }>(db, "PRAGMA user_version").user_version,
-          2,
+          3,
         );
         assert.equal(
           get<{ name: string }>(db, "SELECT name FROM halls WHERE id='kept'")

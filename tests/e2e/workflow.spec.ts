@@ -70,7 +70,11 @@ test("C/D/E: monthly date, holiday end, comparison and detail", async ({
   await page.getByRole("combobox", { name: "毎月の特定日" }).selectOption("11");
   await page.getByRole("button", { name: "この条件で分析する" }).click();
   await expect(page.locator(".ranking-card").first()).toBeVisible();
-  await page.locator(".ranking-card").first().locator("summary").click();
+  await page
+    .locator(".ranking-card")
+    .first()
+    .locator(".card-bottom summary")
+    .click();
   await expect(page.locator(".date-list").first()).toContainText("2026-09-11");
   await page.getByRole("combobox", { name: "毎月の特定日" }).selectOption("");
   await page.getByRole("combobox", { name: "連休の長さ" }).selectOption("3");
@@ -110,7 +114,9 @@ test("real data is empty and imports require authorization", async ({
     .getByRole("combobox", { name: "データモード" })
     .selectOption("real");
   await expect(
-    page.getByRole("heading", { name: "該当する実績データがありません" }),
+    page.getByRole("heading", {
+      name: "評価不可：該当する実績データがありません",
+    }),
   ).toBeVisible();
   await expect(page.locator(".ranking-card")).toHaveCount(0);
   const result = await request.post("/api/import?mode=real", {
@@ -133,6 +139,9 @@ test("authorized CSV import, source display and safe repeated update", async ({
   request,
 }) => {
   await page.goto("/admin");
+  await page
+    .getByText("従来の固定形式CSV・個別登録・出典管理", { exact: true })
+    .click();
   await page
     .getByLabel("管理トークン", { exact: true })
     .fill(process.env.SLOT_E2E_TOKEN!);
@@ -158,6 +167,9 @@ test("manual provenance import, conflicting sources and explicit adoption", asyn
   request,
 }, testInfo) => {
   await page.goto("/admin");
+  await page
+    .getByText("従来の固定形式CSV・個別登録・出典管理", { exact: true })
+    .click();
   await page
     .getByLabel("出典管理トークン", { exact: true })
     .fill(process.env.SLOT_E2E_TOKEN!);
@@ -251,6 +263,9 @@ test("source mapping UI and protected management endpoints", async ({
   });
   expect(crossOrigin.status()).toBe(403);
   await page.goto("/admin");
+  await page
+    .getByText("従来の固定形式CSV・個別登録・出典管理", { exact: true })
+    .click();
   await page
     .getByLabel("出典管理トークン", { exact: true })
     .fill(process.env.SLOT_E2E_TOKEN!);

@@ -1,0 +1,4 @@
+# CSV templates intentionally use spreadsheet-compatible CRLF line endings.
+*.csv whitespace=cr-at-eol
+# This fixture intentionally contains CP932 bytes.
+tests/fixtures/halls-cp932.csv -diff

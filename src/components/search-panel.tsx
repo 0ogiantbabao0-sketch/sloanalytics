@@ -8,6 +8,7 @@ import {
   BookmarkPlus,
 } from "lucide-react";
 import { useApp, places } from "./provider";
+import { searchSchema } from "@/lib/search-schema";
 import { addDays, normalizeMachine, todayJST } from "@/lib/calendar";
 import type { Search } from "@/lib/types";
 export function SearchPanel() {
@@ -17,6 +18,15 @@ export function SearchPanel() {
   const [locationQuery, setLocationQuery] = useState("");
   const [message, setMessage] = useState("");
   useEffect(() => setDraft(search), [search]);
+  useEffect(() => {
+    if (
+      JSON.stringify(draft) === JSON.stringify(search) ||
+      !searchSchema.safeParse(draft).success
+    )
+      return;
+    const timer = setTimeout(() => setSearch(draft), 600);
+    return () => clearTimeout(timer);
+  }, [draft, search, setSearch]);
   const change = (v: Partial<Search>) => setDraft({ ...draft, ...v });
   const cond = (v: Partial<Search["conditions"]>) =>
     change({ conditions: { ...draft.conditions, ...v } });

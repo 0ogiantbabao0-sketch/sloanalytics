@@ -1,4 +1,12 @@
-import { summarize } from "./metrics";
+import {
+  getWeights,
+  calculateExpectation,
+  normalizedHall,
+  sourceConsistency,
+  scoreVersion,
+  type Weights,
+} from "./scoring";
+import { summarize, averageDiff } from "./metrics";
 import type { DatabaseSync } from "node:sqlite";
 import { all } from "./db";
 import {
@@ -29,7 +37,7 @@ export function evaluate(
   referenceDate: string,
 ) {
   const stats = summarize(rows);
-  const daily = rows.map((r) => r.total_diff / r.units);
+  const daily = rows.map((r) => averageDiff(r));
   const n = rows.length;
   const base =
     new Set(baselineRows.map((r) => r.date)).size >= 3
@@ -38,9 +46,7 @@ export function evaluate(
   const spread = Math.max(
     200,
     Math.sqrt(
-      average(
-        baselineRows.map((r) => (r.total_diff / r.units - (base ?? 0)) ** 2),
-      ),
+      average(baselineRows.map((r) => (averageDiff(r) - (base ?? 0)) ** 2)),
     ),
   );
   const completeness = n
@@ -104,7 +110,12 @@ export function evaluate(
     trend,
   };
 }
-export function search(db: DatabaseSync, input: Search): SearchResponse {
+export function search(
+  db: DatabaseSync,
+  input: Search,
+  options: { weights?: Weights; audit?: boolean } = {},
+): SearchResponse {
+  const weights = options.weights ?? getWeights(db);
   const to = input.to || addDays(input.targetDate, -1),
     from = input.from || addDays(to, 1 - input.days);
   const halls = all<Hall>(
@@ -116,7 +127,7 @@ export function search(db: DatabaseSync, input: Search): SearchResponse {
       (input.rankingMode !== "hall" || h.id === input.hallId),
   );
   const machines = all<Machine>(db, "SELECT * FROM machines");
-  const rows = all<Result>(
+  const rawRows = all<Result>(
     db,
     "SELECT * FROM daily_machine_results WHERE date BETWEEN ? AND ? ORDER BY date",
     from,
@@ -131,6 +142,10 @@ export function search(db: DatabaseSync, input: Search): SearchResponse {
     "SELECT * FROM special_days",
   );
   const sources = all<Source>(db, "SELECT * FROM data_sources");
+  const consistency = sourceConsistency(db, rawRows, input.targetDate);
+  const rows = rawRows.filter(
+    (r) => !consistency.conflicts.has(consistency.key(r)),
+  );
   const specialOn = (hallId: string, date: string) =>
     special.some(
       (s) =>
@@ -157,6 +172,23 @@ export function search(db: DatabaseSync, input: Search): SearchResponse {
         previousTo,
       )
     : [];
+  const baselineFor = (machineId: string) =>
+    rows.filter(
+      (r) =>
+        r.machine_id === machineId &&
+        !isDayOff(r.date) &&
+        !specialOn(r.hall_id, r.date) &&
+        !events.some((e) => e.hall_id === r.hall_id && e.date === r.date),
+    );
+  const hallMetrics = new Map(
+    halls.map((h) => [
+      h.id,
+      normalizedHall(
+        rows.filter((r) => r.hall_id === h.id && matches(r)),
+        baselineFor,
+      ),
+    ]),
+  );
   const rankings: Ranking[] = [];
   let eligibleCount = 0;
   for (const hall of halls)
@@ -193,12 +225,67 @@ export function search(db: DatabaseSync, input: Search): SearchResponse {
           !events.some((e) => e.hall_id === r.hall_id && e.date === r.date),
       );
       const score = evaluate(matching, baseline, input.targetDate);
+      const sameHall = rows.filter((r) => r.hall_id === hall.id);
+      const hallMachineCount = new Set(sameHall.map((r) => r.machine_id)).size;
+      const matchingMachineCount = new Set(
+        sameHall.filter(matches).map((r) => r.machine_id),
+      ).size;
+      const eventTypes = input.conditions.eventType
+        ? new Set(
+            input.conditions.eventType === "any"
+              ? events
+                  .filter(
+                    (e) => e.hall_id === hall.id && e.date < input.targetDate,
+                  )
+                  .map((e) => e.type)
+              : [input.conditions.eventType],
+          )
+        : new Set(
+            events
+              .filter(
+                (e) => e.hall_id === hall.id && e.date === input.targetDate,
+              )
+              .map((e) => e.type),
+          );
+      const eventRows = matching.filter((r) =>
+        events.some(
+          (e) =>
+            e.hall_id === hall.id &&
+            e.date === r.date &&
+            eventTypes.has(e.type),
+        ),
+      );
+      const conflictCount = rawRows.filter(
+        (r) =>
+          r.hall_id === hall.id &&
+          r.machine_id === machine.id &&
+          matches(r) &&
+          consistency.conflicts.has(consistency.key(r)),
+      ).length;
+      const expectation = calculateExpectation({
+        rows: matching,
+        baseline,
+        hall: hallMetrics.get(hall.id)!,
+        eventRows,
+        sources,
+        date: input.targetDate,
+        weights,
+        consistency: conflictCount
+          ? matching.length / (matching.length + conflictCount)
+          : matching.some((r) => consistency.agreements.has(consistency.key(r)))
+            ? 1
+            : 0.85,
+        conflicts: conflictCount,
+        coverage: hallMachineCount
+          ? matchingMachineCount / hallMachineCount
+          : 0,
+      });
       const lastYear = previousRows.filter(
         (r) =>
           r.hall_id === hall.id && r.machine_id === machine.id && matches(r),
       );
       const reasons = [
-        `該当${matching.length}日中${matching.filter((r) => r.total_diff > 0).length}日で機種平均差枚がプラス`,
+        `該当${matching.length}日中${matching.filter((r) => averageDiff(r) > 0).length}日で機種平均差枚がプラス`,
         score.uplift === null
           ? "同機種の通常日データ不足のため評価保留"
           : `同機種の通常日比 ${score.uplift >= 0 ? "+" : ""}${Math.round(score.uplift).toLocaleString()}枚／台`,
@@ -213,8 +300,17 @@ export function search(db: DatabaseSync, input: Search): SearchResponse {
         distance: haversine(input.center, hall),
         installation,
         ...score,
+        score: expectation.score,
+        confidence: expectation.confidence,
+        scoreDetail: expectation.detail,
         days: matching.length,
-        reasons,
+        reasons: [
+          ...reasons,
+          ...expectation.detail.components
+            .filter((c) => c.signal !== null)
+            .map((c) => `${c.label}：${c.reason}`),
+          `未解決の競合${conflictCount}件を除外`,
+        ],
         records: matching,
         sources: sources.filter((s) =>
           matching.some((r) => r.source_id === s.id),
@@ -232,6 +328,43 @@ export function search(db: DatabaseSync, input: Search): SearchResponse {
         ),
       });
     }
+  const version = scoreVersion({
+    rows,
+    events,
+    special,
+    weights,
+    sources,
+    conflicts: [...consistency.conflicts],
+  });
+  for (const hall of halls) {
+    const candidates = rankings
+      .filter((r) => r.hall.id === hall.id)
+      .sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+    const best = candidates[0];
+    if (!best) continue;
+    const d = best.scoreDetail!,
+      h = d.hallSampleScore;
+    const coverage = d.hallCoverage;
+    const bestAdjusted =
+      best.score === null
+        ? null
+        : 50 +
+          (best.score - 50) * Math.sqrt(coverage) * Math.min(1, d.days / 8);
+    const hallScore =
+      bestAdjusted === null || h === null
+        ? null
+        : Math.round(
+            (bestAdjusted * weights.bestShare) / 100 +
+              h * (1 - weights.bestShare / 100),
+          );
+    for (const r of candidates) {
+      r.hallScore = hallScore;
+      r.scoreDetail!.hallScore = hallScore;
+      r.scoreDetail!.recommendedMachine = best.machine.name;
+      r.scoreDetail!.recommendedScore = best.score;
+      r.scoreDetail!.dataVersion = version;
+    }
+  }
   // Best-only always chooses the highest scoring machine, independently of display sort.
   let result = rankings;
   if (input.bestOnly) {
@@ -247,9 +380,40 @@ export function search(db: DatabaseSync, input: Search): SearchResponse {
   result.sort((a, b) =>
     key === "distance"
       ? a.distance - b.distance
-      : (b[key] ?? -Infinity) - (a[key] ?? -Infinity) ||
+      : (key === "score" && input.rankingMode === "auto"
+          ? (b.hallScore ?? -Infinity) - (a.hallScore ?? -Infinity) ||
+            (b.score ?? -Infinity) - (a.score ?? -Infinity)
+          : (b[key] ?? -Infinity) - (a[key] ?? -Infinity)) ||
         a.hall.id.localeCompare(b.hall.id),
   );
+  if (
+    options.audit &&
+    !db
+      .prepare(
+        "SELECT 1 FROM score_runs WHERE mode=? AND conditions_json=? AND weights_json=? AND data_version=? LIMIT 1",
+      )
+      .get(input.mode, JSON.stringify(input), JSON.stringify(weights), version)
+  )
+    db.prepare(
+      "INSERT INTO score_runs(mode,conditions_json,weights_json,data_version,result_json,calculated_at) VALUES(?,?,?,?,?,?)",
+    ).run(
+      input.mode,
+      JSON.stringify(input),
+      JSON.stringify(weights),
+      version,
+      JSON.stringify(
+        result.map((r) => ({
+          hall: r.hall.id,
+          machine: r.machine.id,
+          score: r.score,
+          hallScore: r.hallScore,
+          detail: r.scoreDetail,
+          records: r.records,
+          sources: r.sources,
+        })),
+      ),
+      new Date().toISOString(),
+    );
   return {
     rankings: result,
     hallCount: halls.length,
@@ -258,8 +422,9 @@ export function search(db: DatabaseSync, input: Search): SearchResponse {
     to,
     targetHoliday: holidayName(input.targetDate),
     streak: holidayStreak(input.targetDate),
-    warning:
-      to < "2026-01-01"
+    warning: consistency.conflicts.size
+      ? `未解決の競合${consistency.conflicts.size}件を評価対象から除外しています。`
+      : to < "2026-01-01"
         ? "古い対象期間です。更新日時を確認してください。"
         : null,
   };

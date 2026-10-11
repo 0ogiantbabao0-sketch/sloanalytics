@@ -17,7 +17,8 @@ export type Result = {
   hall_id: string;
   machine_id: string;
   date: string;
-  total_diff: number;
+  total_diff: number | null;
+  avg_diff?: number | null;
   units: number;
   positive_units: number | null;
   games: number | null;
@@ -62,6 +63,8 @@ export type Search = {
   comparePrevious: boolean;
 };
 export type Ranking = {
+  scoreDetail?: import("./scoring").ScoreDetail;
+  hallScore?: number | null;
   hall: Hall;
   machine: Machine;
   distance: number;
@@ -71,7 +74,7 @@ export type Ranking = {
   completeness: number;
   days: number;
   avg: number;
-  total: number;
+  total: number | null;
   positiveRate: number | null;
   games: number | null;
   baseline: number | null;

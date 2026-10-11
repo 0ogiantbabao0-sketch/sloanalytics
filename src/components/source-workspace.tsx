@@ -22,7 +22,7 @@ type Observation = {
   source_updated_at: string | null;
   payload_json: string;
   selected: number;
-  selected_total_diff: number;
+  selected_total_diff: number | null;
   raw_hall_name: string;
   raw_machine_name: string;
   method: string;
@@ -322,7 +322,7 @@ export function SourceWorkspace() {
           )}
           {review.observations.map((o) => {
             const data = JSON.parse(o.payload_json) as {
-              total_diff: number;
+              total_diff: number | null;
               units: number;
               games: number | null;
               positive_units: number | null;
@@ -334,13 +334,14 @@ export function SourceWorkspace() {
                   （{o.selected ? "採用中" : "未採用"}）
                 </summary>
                 <p>
-                  総差枚 {data.total_diff.toLocaleString()}枚 / 対象{" "}
-                  {data.units}台 / プラス {data.positive_units ?? "未取得"}台 /
-                  平均 {data.games ?? "未取得"}G
+                  総差枚 {data.total_diff?.toLocaleString() ?? "未取得"}枚 /
+                  対象 {data.units}台 / プラス {data.positive_units ?? "未取得"}
+                  台 / 平均 {data.games ?? "未取得"}G
                 </p>
                 {!o.selected && (
                   <p>
-                    現在採用中の総差枚：{o.selected_total_diff.toLocaleString()}
+                    現在採用中の総差枚：
+                    {o.selected_total_diff?.toLocaleString() ?? "未取得"}
                     枚。同じ値でも出典は個別に保持します。
                   </p>
                 )}

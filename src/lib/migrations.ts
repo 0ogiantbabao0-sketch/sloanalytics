@@ -4,7 +4,7 @@ export function migrateSources(db: DatabaseSync) {
   const version = (
     db.prepare("PRAGMA user_version").get() as { user_version: number }
   ).user_version;
-  if (version > 2) throw new Error("未対応のDBバージョンです");
+  if (version > 3) throw new Error("未対応のDBバージョンです");
   if (version >= 2) return;
   try {
     db.exec("BEGIN IMMEDIATE");
@@ -12,8 +12,8 @@ export function migrateSources(db: DatabaseSync) {
     const lockedVersion = (
       db.prepare("PRAGMA user_version").get() as { user_version: number }
     ).user_version;
-    if (lockedVersion > 2) throw new Error("未対応のDBバージョンです");
-    if (lockedVersion === 2) {
+    if (lockedVersion > 3) throw new Error("未対応のDBバージョンです");
+    if (lockedVersion >= 2) {
       db.exec("COMMIT");
       return;
     }

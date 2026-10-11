@@ -75,7 +75,8 @@ export type CanonicalResult = {
   hall_id: string;
   machine_id: string;
   date: string;
-  total_diff: number;
+  total_diff: number | null;
+  avg_diff?: number | null;
   units: number;
   positive_units: number | null;
   games: number | null;
@@ -98,7 +99,7 @@ export function writeCanonical(
   if (before && Object.entries(after).every(([k, v]) => before[k] === v))
     return false;
   db.prepare(
-    "INSERT INTO daily_machine_results VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(hall_id,machine_id,date) DO UPDATE SET total_diff=excluded.total_diff,units=excluded.units,positive_units=excluded.positive_units,games=excluded.games,source_id=excluded.source_id,updated_at=excluded.updated_at",
+    "INSERT INTO daily_machine_results(hall_id,machine_id,date,total_diff,units,positive_units,games,source_id,updated_at,avg_diff) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(hall_id,machine_id,date) DO UPDATE SET total_diff=excluded.total_diff,units=excluded.units,positive_units=excluded.positive_units,games=excluded.games,source_id=excluded.source_id,updated_at=excluded.updated_at,avg_diff=excluded.avg_diff",
   ).run(
     after.hall_id,
     after.machine_id,
@@ -109,6 +110,7 @@ export function writeCanonical(
     after.games,
     after.source_id,
     now,
+    after.avg_diff ?? null,
   );
   db.prepare(
     "INSERT INTO data_revisions(job_id,entity,entity_key,before_json,after_json,changed_at) VALUES(?,?,?,?,?,?)",

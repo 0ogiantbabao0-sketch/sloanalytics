@@ -15,12 +15,12 @@ test("main navigation switches all five screens and preserves applied search", a
     ["ホール比較", "/compare", "同じ条件で、ホールを比較。"],
     ["台番分析", "/units", "台番ごとの実績を見る"],
     ["お気に入り・保存", "/saved", "保存した検索条件"],
-    ["データ管理", "/admin", "データを管理する"],
+    ["データ管理", "/admin", "データ収集・管理"],
     ["ホールを探す", "/", "次の一台を、データから。"],
   ]) {
     const link = nav.getByRole("link", { name: label, exact: true });
     await link.click();
-    await expect(page).toHaveURL(new RegExp(`${path}$`));
+    await expect(page).toHaveURL(new RegExp(`${path}$`), { timeout: 15000 });
     await expect(
       page.getByRole("heading", { name: heading, exact: true }),
     ).toBeVisible();

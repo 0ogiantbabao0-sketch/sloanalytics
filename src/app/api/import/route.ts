@@ -4,7 +4,7 @@ import { getDb } from "@/lib/db";
 import { importCsv, importRecords } from "@/lib/importer";
 export const runtime = "nodejs";
 export async function POST(req: Request) {
-  const denied = authorizeAdmin(req);
+  const denied = await authorizeAdmin(req);
   if (denied) return denied;
   const mode = new URL(req.url).searchParams.get("mode");
   if (mode !== "real" && mode !== "demo")

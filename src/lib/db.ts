@@ -1,3 +1,4 @@
+import { migrateWorkspace } from "./workspace-migration";
 import { seedMachineCatalog } from "./machine-catalog";
 import { migrateSources } from "./migrations";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
@@ -11,6 +12,7 @@ export function createDb(path: string): DatabaseSync {
     db.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
     db.exec(readFileSync(resolve(process.cwd(), "src/lib/schema.sql"), "utf8"));
     migrateSources(db);
+    migrateWorkspace(db);
     seedMachineCatalog(db);
     return db;
   } catch (e) {

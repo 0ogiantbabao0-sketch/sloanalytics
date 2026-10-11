@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual, createHash } from "node:crypto";
-export function authorizeAdmin(req: Request) {
+import { ownerRequest } from "./owner-session";
+export async function authorizeAdmin(req: Request) {
+  if (await ownerRequest(req)) return null;
   const token = process.env.ADMIN_IMPORT_TOKEN;
   if (!token)
     return NextResponse.json(

@@ -118,7 +118,7 @@ if (!(db.prepare("SELECT count(*) AS n FROM halls").get() as { n: number }).n) {
             ),
           );
           db.prepare(
-            "INSERT INTO daily_machine_results VALUES(?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO daily_machine_results(hall_id,machine_id,date,total_diff,units,positive_units,games,source_id,updated_at) VALUES(?,?,?,?,?,?,?,?,?)",
           ).run(
             id,
             machineId,
